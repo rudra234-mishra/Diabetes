@@ -3,8 +3,9 @@ import pandas as pd
 import pickle
 import streamlit as st
 import time
+import matplotlib.pyplot as plt
 
-# Load model safely
+# Load model
 @st.cache_resource
 def load_model():
     with open("pipe_logistic.pkl", "rb") as f:
@@ -16,59 +17,46 @@ pipe = load_model()
 st.set_page_config(page_title="Diabetes Predictor", page_icon="🩺", layout="wide")
 
 # Sidebar
-st.sidebar.title("🩺 About")
-st.sidebar.info("""
-This app predicts the likelihood of diabetes using a Machine Learning model.
+st.sidebar.title("⚙️ Settings")
 
-👨‍💻 Developed by Rudra  
-""")
+preset = st.sidebar.selectbox(
+    "Load Sample Data",
+    ["Custom", "Healthy Person", "High Risk Person"]
+)
 
-# Custom CSS
-st.markdown("""
-<style>
-.main {
-    background-color: #f5f7fa;
-}
-h1 {
-    color: #ff4b4b;
-    text-align: center;
-}
-.stButton>button {
-    background-color: #ff4b4b;
-    color: white;
-    border-radius: 10px;
-    height: 3em;
-    width: 100%;
-    font-size:18px;
-}
-</style>
-""", unsafe_allow_html=True)
+# Presets
+if preset == "Healthy Person":
+    default = [1, 100, 70, 20, 80, 24.0, 0.4, 25]
+elif preset == "High Risk Person":
+    default = [6, 180, 95, 35, 250, 35.0, 1.2, 50]
+else:
+    default = [1, 100, 70, 20, 80, 25.0, 0.5, 25]
 
 # Title
-st.title("🩺 Diabetes Prediction App")
+st.title("🩺 Diabetes Prediction App Made By Rudra")
 st.markdown("### Enter Patient Details 👇")
 
 # Layout
 col1, col2 = st.columns(2)
 
 with col1:
-    Pregnancies = st.slider("🤰 Pregnancies", 0, 20, 1)
-    Glucose = st.slider("🍬 Glucose Level", 0, 200, 100)
-    BloodPressure = st.slider("💓 Blood Pressure", 0, 150, 70)
-    SkinThickness = st.slider("📏 Skin Thickness", 0, 100, 20)
+    Pregnancies = st.slider("🤰 Pregnancies", 0, 20, default[0])
+    Glucose = st.slider("🍬 Glucose", 0, 200, default[1])
+    BloodPressure = st.slider("💓 Blood Pressure", 0, 150, default[2])
+    SkinThickness = st.slider("📏 Skin Thickness", 0, 100, default[3])
 
 with col2:
-    Insulin = st.slider("💉 Insulin", 0, 900, 80)
-    BMI = st.slider("⚖️ BMI", 0.0, 60.0, 25.0)
-    DiabetesPedigreeFunction = st.slider("🧬 Diabetes Pedigree", 0.0, 2.5, 0.5)
-    Age = st.slider("🎂 Age", 1, 100, 25)
+    Insulin = st.slider("💉 Insulin", 0, 900, default[4])
+    BMI = st.slider("⚖️ BMI", 0.0, 60.0, default[5])
+    DiabetesPedigreeFunction = st.slider("🧬 Pedigree", 0.0, 2.5, default[6])
+    Age = st.slider("🎂 Age", 1, 100, default[7])
 
 st.markdown("---")
 
 # Predict
-if st.button("🔍 Predict Diabetes"):
+if st.button("🚀 Predict Now"):
 
-    with st.spinner("Analyzing data..."):
+    with st.spinner("🔍 Analyzing..."):
         time.sleep(1)
 
         input_df = pd.DataFrame({
@@ -84,36 +72,52 @@ if st.button("🔍 Predict Diabetes"):
 
         prediction = pipe.predict(input_df)[0]
 
-        # Probability (safe)
         try:
             prob = pipe.predict_proba(input_df)[0][1]
         except:
             prob = None
 
-    # Result
-    st.markdown("## 🧾 Result")
+    st.markdown("## 🧾 Prediction Result")
 
+    # Result Card
     if prediction == 1:
         st.error("⚠️ High Risk of Diabetes")
     else:
-        st.success("✅ Low Risk (No Diabetes)")
+        st.success("✅ Low Risk of Diabetes")
 
-    # Probability
+    # Probability Gauge
     if prob is not None:
         st.metric("📊 Risk Probability", f"{prob*100:.2f}%")
         st.progress(int(prob * 100))
 
     st.markdown("---")
 
-    # Input summary
+    # Visualization
+    st.subheader("📊 Feature Overview")
+
+    fig, ax = plt.subplots()
+    features = input_df.columns
+    values = input_df.iloc[0]
+
+    ax.barh(features, values)
+    ax.set_title("Input Feature Values")
+
+    st.pyplot(fig)
+
+    # Input Table
     st.subheader("📋 Input Summary")
     st.dataframe(input_df, use_container_width=True)
 
-    # Health tips
-    st.markdown("### 💡 Health Tips")
-    st.info("""
-✔ Maintain healthy diet  
-✔ Exercise regularly  
-✔ Monitor blood sugar  
-✔ Avoid excess sugar  
-""")
+    # Smart Feedback
+    st.subheader("🧠 AI Health Suggestions")
+
+    if Glucose > 140:
+        st.warning("⚠️ High glucose detected — consider reducing sugar intake.")
+
+    if BMI > 30:
+        st.warning("⚠️ High BMI — regular exercise is recommended.")
+
+    if Age > 45:
+        st.info("ℹ️ Regular health checkups are important.")
+
+    st.success("✔ Stay healthy and monitor regularly!")
