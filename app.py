@@ -1,12 +1,16 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 import pickle
 import streamlit as st
 import time
 
-# Load model
-pipe = pickle.load(open("pipe_logistic.pkl","rb"))
+# Load model safely
+@st.cache_resource
+def load_model():
+    with open("pipe_logistic.pkl", "rb") as f:
+        return pickle.load(f)
+
+pipe = load_model()
 
 # Page config
 st.set_page_config(page_title="Diabetes Predictor", page_icon="🩺", layout="wide")
@@ -80,13 +84,13 @@ if st.button("🔍 Predict Diabetes"):
 
         prediction = pipe.predict(input_df)[0]
 
-        # Probability (if model supports it)
+        # Probability (safe)
         try:
             prob = pipe.predict_proba(input_df)[0][1]
         except:
             prob = None
 
-    # Result Display
+    # Result
     st.markdown("## 🧾 Result")
 
     if prediction == 1:
@@ -94,60 +98,22 @@ if st.button("🔍 Predict Diabetes"):
     else:
         st.success("✅ Low Risk (No Diabetes)")
 
-    # Show probability
+    # Probability
     if prob is not None:
         st.metric("📊 Risk Probability", f"{prob*100:.2f}%")
-
         st.progress(int(prob * 100))
 
     st.markdown("---")
 
-    # Show input nicely
+    # Input summary
     st.subheader("📋 Input Summary")
     st.dataframe(input_df, use_container_width=True)
 
-    # Tips
+    # Health tips
     st.markdown("### 💡 Health Tips")
     st.info("""
-    ✔ Maintain healthy diet  
-    ✔ Exercise regularly  
-    ✔ Monitor blood sugar  
-    ✔ Avoid excess sugar  
-    """)
-
----
-
-# ✨ What’s Improved
-
-## 🎨 UI
-- Sliders instead of boring inputs  
-- Sidebar info  
-- Clean layout  
-
-## ⚡ Interaction
-- Loading spinner  
-- Risk percentage  
-- Progress bar  
-
-## 🧠 Smart Features
-- Shows probability  
-- Health suggestions  
-
----
-
-# 💡 Next Level Ideas (if you want)
-
-I can help you add:
-
-✔ Graph (risk visualization)  
-✔ Download report (PDF)  
-✔ User login system  
-✔ Database storage  
-✔ Deploy with custom domain  
-
----
-
-# 🚀 Final Result
-
-```text
-Your app now looks like a real healthcare AI product
+✔ Maintain healthy diet  
+✔ Exercise regularly  
+✔ Monitor blood sugar  
+✔ Avoid excess sugar  
+""")
